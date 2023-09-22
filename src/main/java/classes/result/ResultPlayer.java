@@ -13,6 +13,9 @@ public class ResultPlayer implements Serializable
     @SerializedName("id")
     @Expose
     private String id;
+    @SerializedName("symbol")
+    @Expose
+    private String symbol;
     @SerializedName("score")
     @Expose
     private Integer score;
@@ -60,6 +63,14 @@ public class ResultPlayer implements Serializable
         result = ((result* 31)+((this.score == null)? 0 :this.score.hashCode()));
         result = ((result* 31)+((this.id == null)? 0 :this.id.hashCode()));
         return result;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
 
     @Override

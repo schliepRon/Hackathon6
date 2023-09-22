@@ -13,6 +13,9 @@ public class InitPlayer implements Serializable
     @SerializedName("id")
     @Expose
     private String id;
+    @SerializedName("symbol")
+    @Expose
+    private String symbol;
     @SerializedName("score")
     @Expose
     private Integer score;
@@ -52,6 +55,14 @@ public class InitPlayer implements Serializable
             sb.append(']');
         }
         return sb.toString();
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
 
     @Override

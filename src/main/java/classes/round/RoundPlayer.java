@@ -37,6 +37,14 @@ public class RoundPlayer implements Serializable
         this.score = score;
     }
 
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

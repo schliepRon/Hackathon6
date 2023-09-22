@@ -17,9 +17,9 @@ public class Result implements Serializable
     @SerializedName("players")
     @Expose
     private List<ResultPlayer> players = null;
-    @SerializedName("boards")
+    @SerializedName("board")
     @Expose
-    private List<List<List<String>>> boards = null;
+    private List<List<String>> board = null;
 //
     @SerializedName("type")
     @Expose
@@ -27,6 +27,11 @@ public class Result implements Serializable
     @SerializedName("self")
     @Expose
     private String self;
+
+
+    @SerializedName("overview")
+    @Expose
+    private List<String> overview = null;
     private final static long serialVersionUID = 8243041135500189102L;
 
     public String getId() {
@@ -45,6 +50,13 @@ public class Result implements Serializable
         this.players = players;
     }
 
+    public List<String> getOverview() {
+        return overview;
+    }
+
+    public void setOverview(List<String> overview) {
+        this.overview = overview;
+    }
 
     public String getType() {
         return type;
@@ -62,12 +74,12 @@ public class Result implements Serializable
         this.self = self;
     }
 
-    public List<List<List<String>>> getBoards() {
-        return boards;
+    public List<List<String>> getBoard() {
+        return board;
     }
 
-    public void setBoards(List<List<List<String>>> boards) {
-        this.boards = boards;
+    public void setBoard(List<List<String>> board) {
+        this.board = board;
     }
 
 

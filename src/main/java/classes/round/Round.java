@@ -18,9 +18,15 @@ public class Round implements Serializable
     @Expose
     private List<RoundPlayer> players = null;
 
-    @SerializedName("boards")
+    @SerializedName("overview")
     @Expose
-    private List<List<List<String>>> boards = null;
+    private List<String> overview = null;
+    @SerializedName("forcedSection")
+    @Expose
+    private Integer forcedSelection = null;
+    @SerializedName("board")
+    @Expose
+    private List<List<String>> board = null;
 //    @SerializedName("log")
 //    @Expose
 //    private List<RoundLog> log = null;
@@ -48,15 +54,31 @@ public class Round implements Serializable
         this.players = players;
     }
 
-    public List<List<List<String>>> getBoards() {
-        return boards;
+    public List<List<String>> getBoard() {
+        return board;
     }
 
-    public void setBoards(List<List<List<String>>> boards) {
-        this.boards = boards;
+    public void setBoard(List<List<String>> board) {
+        this.board = board;
     }
 
-//    public List<RoundLog> getLog() {
+    public List<String> getOverview() {
+        return overview;
+    }
+
+    public void setOverview(List<String> overview) {
+        this.overview = overview;
+    }
+
+    public Integer getForcedSelection() {
+        return forcedSelection;
+    }
+
+    public void setForcedSelection(Integer forcedSelection) {
+        this.forcedSelection = forcedSelection;
+    }
+
+    //    public List<RoundLog> getLog() {
 //        return log;
 //    }
 //
