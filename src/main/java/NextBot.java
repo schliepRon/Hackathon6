@@ -236,7 +236,7 @@ public class NextBot {
         Integer rand = null;
 
         if (forcedSelection == null) {
-            rand = findBestOrWorstSection(mySymbol, overview, true);
+            rand = findBestOrWorstSection(mySymbol, overview, true, board, leftCoordsToShootSection.get(gameID));
             if (rand == null) {
                 rand = ThreadLocalRandom.current().nextInt(0, 8);
 
@@ -252,13 +252,13 @@ public class NextBot {
 
         List<Coordinate> verfuegbareCoordinaten = new ArrayList<>(leftCoordsToShootSection.get(gameID).get(index1));
         System.out.println("verf. Coords: " + verfuegbareCoordinaten.size());
-        Coordinate bestCoord = findBestShotInSection(index1, mySymbol, board, verfuegbareCoordinaten, overview);
+        Coordinate bestCoord = findBestShotInSection(index1, mySymbol, board, leftCoordsToShootSection.get(gameID), overview, true);
         Collections.shuffle(verfuegbareCoordinaten);
         return bestCoord != null ? bestCoord : verfuegbareCoordinaten.stream().findFirst().orElse(new Coordinate(0, 0));
     }
 
     private static Coordinate findBestShotInSection(int section, String mySymbol, List<List<String>> board,
-                                                    List<Coordinate> freeCoordinates, List<String> overview) {
+                                                    List<List<Coordinate>> freeCoordinates, List<String> overview, boolean findWorst) {
         AtomicReference<Coordinate> bestShot = new AtomicReference<>();
         AtomicInteger bestShotOcc = new AtomicInteger();
 
@@ -273,7 +273,7 @@ public class NextBot {
 //                    return new Coordinate(section, bestSection);
 //                }
 //            }
-            Integer worstSectionForEnemy = findWorstSectionForEnemy(mySymbol, overview, board);
+            Integer worstSectionForEnemy = findWorst ? findWorstSectionForEnemy(mySymbol, overview, board, freeCoordinates) : null;
             //TODO find Worst enemy place
             List<Coordinate> bestShots;
             if (shouldDiagonal(i)) {
@@ -306,7 +306,7 @@ public class NextBot {
         return i == 0 || i == 2 || i == 4 || i == 6 || i == 8;
     }
 
-    private static Integer findBestOrWorstSection(String mySymbol, List<String> overview, boolean best) {
+    private static Integer findBestOrWorstSection(String mySymbol, List<String> overview, boolean best, List<List<String>> board, List<List<Coordinate>> freeCoords) {
         if (!overview.contains(mySymbol)) {
             return null;
         }
@@ -328,10 +328,11 @@ public class NextBot {
                     if (coordinate.getX() < 0 || coordinate.getX() > 8) {
                         return;
                     }
+                    Coordinate bestInSection = findBestShotInSection(coordinate.getX(), mySymbol, board,  freeCoords, overview, false );
                     if (occs.containsKey(coordinate.getX())) {
                         occs.replace(coordinate.getX(), occs.get(coordinate.getX()) + 1);
                     } else {
-                        occs.put(coordinate.getX(), 1);
+                        occs.put(coordinate.getX(),bestInSection != null ? 3 : 1);
                     }
                 });
             }
@@ -352,8 +353,8 @@ public class NextBot {
         }
     }
 
-    private static Integer findWorstSectionForEnemy(String mySymbol, List<String> overview, List<List<String>> board) {
-        return findBestOrWorstSection(mySymbol.equalsIgnoreCase("x") ? "O" : "X", overview, false);
+    private static Integer findWorstSectionForEnemy(String mySymbol, List<String> overview, List<List<String>> board, List<List<Coordinate>> freeCoords) {
+        return findBestOrWorstSection(mySymbol.equalsIgnoreCase("x") ? "O" : "X", overview, false, board, freeCoords);
     }
 
     private static int[] getRandomCoord() {

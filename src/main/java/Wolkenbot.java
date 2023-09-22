@@ -283,9 +283,11 @@ public class Wolkenbot {
             }
             bestShots.forEach(bs -> {
                 if (bestCoords.containsKey(bs)) {
-                    bestCoords.replace(bs, bestCoords.get(bs) + 1);
+                    bestCoords.replace(bs, bestCoords.get(bs) + getScoreForField(mySymbol, bs.getY(), board.get(bs.getX())));
                 } else {
-                    bestCoords.put(bs, worstSectionForEnemy != null && bs.getX() == worstSectionForEnemy ? 5 : 1);
+                    bestCoords.put(bs, worstSectionForEnemy != null && bs.getX() == worstSectionForEnemy
+                            ? getScoreForField(mySymbol, bs.getY(), board.get(bs.getX())) + 5
+                            : getScoreForField(mySymbol, bs.getY(), board.get(bs.getX())));
                 }
             });
 
@@ -304,6 +306,57 @@ public class Wolkenbot {
 
     private static boolean shouldDiagonal(int i) {
         return i == 0 || i == 2 || i == 4 || i == 6 || i == 8;
+    }
+
+    private static int getScoreForField(String mySymbol, int self, List<String> section) {
+        int myField = self;
+        int score = 1;
+        if(!shouldDiagonal(myField)) {
+            score++;
+        }
+        if(myField == 0) {
+            if(section.get(1).equals(mySymbol) && section.get(2).equals(mySymbol)) score++; //h
+            if(section.get(3).equals(mySymbol) && section.get(6).equals(mySymbol)) score++; //v
+            if(section.get(4).equals(mySymbol) && section.get(8).equals(mySymbol)) score++; //d
+        }
+        if(myField == 1) {
+            if(section.get(0).equals(mySymbol) && section.get(2).equals(mySymbol)) score++; //h
+            if(section.get(4).equals(mySymbol) && section.get(7).equals(mySymbol)) score++; //v
+        }
+        if(myField == 2) {
+            if(section.get(0).equals(mySymbol) && section.get(1).equals(mySymbol)) score++;
+            if(section.get(5).equals(mySymbol) && section.get(8).equals(mySymbol)) score++;
+            if(section.get(4).equals(mySymbol) && section.get(6).equals(mySymbol)) score++;
+        }
+        if(myField == 3) {
+            if(section.get(0).equals(mySymbol) && section.get(6).equals(mySymbol)) score++;
+            if(section.get(4).equals(mySymbol) && section.get(5).equals(mySymbol)) score++;
+        }
+        if(myField == 4) {
+            if(section.get(3).equals(mySymbol) && section.get(5).equals(mySymbol)) score++; //h
+            if(section.get(1).equals(mySymbol) && section.get(7).equals(mySymbol)) score++; // v
+            if(section.get(0).equals(mySymbol) && section.get(8).equals(mySymbol)) score++; //d1
+            if(section.get(2).equals(mySymbol) && section.get(6).equals(mySymbol)) score++;
+        }
+        if(myField == 5) {
+            if(section.get(2).equals(mySymbol) && section.get(8).equals(mySymbol)) score++;
+            if(section.get(4).equals(mySymbol) && section.get(3).equals(mySymbol)) score++;
+        }
+        if(myField == 6) {
+            if(section.get(4).equals(mySymbol) && section.get(2).equals(mySymbol)) score++;
+            if(section.get(3).equals(mySymbol) && section.get(0).equals(mySymbol)) score++;
+            if(section.get(7).equals(mySymbol) && section.get(8).equals(mySymbol)) score++;
+        }
+        if(myField == 7) {
+            if(section.get(6).equals(mySymbol) && section.get(8).equals(mySymbol)) score++;
+            if(section.get(4).equals(mySymbol) && section.get(1).equals(mySymbol)) score++;
+        }
+        if(myField == 8) {
+            if(section.get(7).equals(mySymbol) && section.get(6).equals(mySymbol)) score++;
+            if(section.get(5).equals(mySymbol) && section.get(2).equals(mySymbol)) score++;
+            if(section.get(4).equals(mySymbol) && section.get(0).equals(mySymbol)) score++;
+        }
+        return score;
     }
 
     private static Integer findBestOrWorstSection(String mySymbol, List<String> overview, boolean best) {
@@ -331,7 +384,7 @@ public class Wolkenbot {
                     if (occs.containsKey(coordinate.getX())) {
                         occs.replace(coordinate.getX(), occs.get(coordinate.getX()) + 1);
                     } else {
-                        occs.put(coordinate.getX(), 1);
+                        occs.put(coordinate.getX(), getScoreForField(mySymbol, coordinate.getX(), overview));
                     }
                 });
             }
