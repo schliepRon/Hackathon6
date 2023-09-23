@@ -19,6 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class NextBot {
     public static final String SECRET = "f0f5a6c0-994e-4206-9ce4-e6f0e7b8598b"; //Das Secret des Bot
@@ -236,7 +237,7 @@ public class NextBot {
         Integer rand = null;
 
         if (forcedSelection == null) {
-            rand = findBestOrWorstSection(mySymbol, overview, true, board, leftCoordsToShootSection.get(gameID));
+            rand = findBestOrWorstSection(mySymbol, overview, true);
             if (rand == null) {
                 rand = ThreadLocalRandom.current().nextInt(0, 8);
 
@@ -252,13 +253,13 @@ public class NextBot {
 
         List<Coordinate> verfuegbareCoordinaten = new ArrayList<>(leftCoordsToShootSection.get(gameID).get(index1));
         System.out.println("verf. Coords: " + verfuegbareCoordinaten.size());
-        Coordinate bestCoord = findBestShotInSection(index1, mySymbol, board, leftCoordsToShootSection.get(gameID), overview, true);
+        Coordinate bestCoord = findBestShotInSection(index1, mySymbol, board, verfuegbareCoordinaten, overview, forcedSelection != null);
         Collections.shuffle(verfuegbareCoordinaten);
         return bestCoord != null ? bestCoord : verfuegbareCoordinaten.stream().findFirst().orElse(new Coordinate(0, 0));
     }
 
     private static Coordinate findBestShotInSection(int section, String mySymbol, List<List<String>> board,
-                                                    List<List<Coordinate>> freeCoordinates, List<String> overview, boolean findWorst) {
+                                                    List<Coordinate> freeCoordinates, List<String> overview, boolean forced) {
         AtomicReference<Coordinate> bestShot = new AtomicReference<>();
         AtomicInteger bestShotOcc = new AtomicInteger();
 
@@ -273,8 +274,6 @@ public class NextBot {
 //                    return new Coordinate(section, bestSection);
 //                }
 //            }
-            Integer worstSectionForEnemy = findWorst ? findWorstSectionForEnemy(mySymbol, overview, board, freeCoordinates) : null;
-            //TODO find Worst enemy place
             List<Coordinate> bestShots;
             if (shouldDiagonal(i)) {
                 bestShots = getCoordsAround(new Coordinate(section, i), false);
@@ -283,9 +282,9 @@ public class NextBot {
             }
             bestShots.forEach(bs -> {
                 if (bestCoords.containsKey(bs)) {
-                    bestCoords.replace(bs, bestCoords.get(bs) + 1);
+                    bestCoords.replace(bs, getScoreForField(mySymbol, bs.getY(), board.get(bs.getX()), overview, forced ));
                 } else {
-                    bestCoords.put(bs, worstSectionForEnemy != null && bs.getX() == worstSectionForEnemy ? 5 : 1);
+                    bestCoords.put(bs, getScoreForField(mySymbol, bs.getY(), board.get(bs.getX()), overview, forced));
                 }
             });
 
@@ -306,7 +305,204 @@ public class NextBot {
         return i == 0 || i == 2 || i == 4 || i == 6 || i == 8;
     }
 
-    private static Integer findBestOrWorstSection(String mySymbol, List<String> overview, boolean best, List<List<String>> board, List<List<Coordinate>> freeCoords) {
+    private static int getScoreForField(String mySymbol, int self, List<String> section, List<String> overview, boolean forced) {
+        String enemySymbol = mySymbol.equals("X") ? "O" : "X";
+        int myField = self;
+        int score = 1;
+        boolean nurOverview = overview == null;
+
+        int canFinishMultiplier = 2;
+        int enemyInRowMultiplier = !forced ? -2 : 0;
+        int diagonalMultiplier = !forced ? 2 : nurOverview ? 1 : -3;
+        int blockEnemyMultiplier = nurOverview ? 0 : 2;
+        int enemyOverviewMultiplier = -2;
+        if(shouldDiagonal(myField)) {
+            score+=diagonalMultiplier;
+        }
+        if(overview != null && !overview.get(self).equals("")) {
+            score-=2;
+        }
+        if(myField == 0) {
+            if(section.get(1).equals(mySymbol) && section.get(2).equals(mySymbol)) score+=canFinishMultiplier; //h
+            if(section.get(3).equals(mySymbol) && section.get(6).equals(mySymbol)) score+=canFinishMultiplier; //v
+            if(section.get(1).equals(mySymbol) && section.get(2).equals(enemySymbol)) score += enemyInRowMultiplier; //h
+            if(section.get(3).equals(mySymbol) && section.get(6).equals(enemySymbol)) score += enemyInRowMultiplier; //v
+            if(section.get(1).equals(enemySymbol) && section.get(2).equals(mySymbol)) score += enemyInRowMultiplier; //h
+            if(section.get(3).equals(enemySymbol) && section.get(6).equals(mySymbol)) score += enemyInRowMultiplier; //v
+            if(section.get(4).equals(mySymbol) && section.get(8).equals(mySymbol)) score+=canFinishMultiplier; //d
+            if(section.get(4).equals(mySymbol) && section.get(8).equals(enemySymbol)) score += enemyInRowMultiplier; //d
+            if(section.get(4).equals(enemySymbol) && section.get(8).equals(mySymbol)) score += enemyInRowMultiplier; //d
+        }
+        if(myField == 1) {
+            if(section.get(0).equals(mySymbol) && section.get(2).equals(mySymbol)) score+=canFinishMultiplier; //h
+            if(section.get(4).equals(mySymbol) && section.get(7).equals(mySymbol)) score+=canFinishMultiplier; //v
+            if(section.get(0).equals(mySymbol) && section.get(2).equals(enemySymbol)) score+=enemyInRowMultiplier; //h
+            if(section.get(4).equals(mySymbol) && section.get(7).equals(enemySymbol)) score+=enemyInRowMultiplier; //v
+            if(section.get(0).equals(enemySymbol) && section.get(2).equals(mySymbol)) score+=enemyInRowMultiplier; //h
+            if(section.get(4).equals(enemySymbol) && section.get(7).equals(mySymbol)) score+=enemyInRowMultiplier; //v
+        }
+        if(myField == 2) {
+            if(section.get(0).equals(mySymbol) && section.get(1).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(5).equals(mySymbol) && section.get(8).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(6).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(0).equals(enemySymbol) && section.get(1).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(5).equals(enemySymbol) && section.get(8).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(6).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(0).equals(mySymbol) && section.get(1).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(5).equals(mySymbol) && section.get(8).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(6).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 3) {
+            if(section.get(0).equals(mySymbol) && section.get(6).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(5).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(0).equals(enemySymbol) && section.get(6).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(5).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(0).equals(mySymbol) && section.get(6).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(5).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 4) {
+            score += diagonalMultiplier;
+            if(section.get(3).equals(mySymbol) && section.get(5).equals(mySymbol)) score+=canFinishMultiplier; //h
+            if(section.get(1).equals(mySymbol) && section.get(7).equals(mySymbol)) score+=canFinishMultiplier; // v
+            if(section.get(0).equals(mySymbol) && section.get(8).equals(mySymbol)) score+=canFinishMultiplier; //d1
+            if(section.get(2).equals(mySymbol) && section.get(6).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(3).equals(enemySymbol) && section.get(5).equals(mySymbol)) score+=enemyInRowMultiplier; //h
+            if(section.get(1).equals(enemySymbol) && section.get(7).equals(mySymbol)) score+=enemyInRowMultiplier; // v
+            if(section.get(0).equals(enemySymbol) && section.get(8).equals(mySymbol)) score+=enemyInRowMultiplier; //d1
+            if(section.get(2).equals(enemySymbol) && section.get(6).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(3).equals(mySymbol) && section.get(5).equals(enemySymbol)) score+=enemyInRowMultiplier; //h
+            if(section.get(1).equals(mySymbol) && section.get(7).equals(enemySymbol)) score+=enemyInRowMultiplier; // v
+            if(section.get(0).equals(mySymbol) && section.get(8).equals(enemySymbol)) score+=enemyInRowMultiplier; //d1
+            if(section.get(2).equals(mySymbol) && section.get(6).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 5) {
+            if(section.get(2).equals(mySymbol) && section.get(8).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(3).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(2).equals(enemySymbol) && section.get(8).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(3).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(2).equals(mySymbol) && section.get(8).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(3).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 6) {
+            if(section.get(4).equals(mySymbol) && section.get(2).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(3).equals(mySymbol) && section.get(0).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(7).equals(mySymbol) && section.get(8).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(2).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(3).equals(enemySymbol) && section.get(0).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(7).equals(enemySymbol) && section.get(8).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(2).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(3).equals(mySymbol) && section.get(0).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(7).equals(mySymbol) && section.get(8).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 7) {
+            if(section.get(6).equals(mySymbol) && section.get(8).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(1).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(6).equals(enemySymbol) && section.get(8).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(1).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(6).equals(mySymbol) && section.get(8).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(1).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 8) {
+            if(section.get(7).equals(mySymbol) && section.get(6).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(5).equals(mySymbol) && section.get(2).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(0).equals(mySymbol)) score+=canFinishMultiplier;
+            if(section.get(7).equals(enemySymbol) && section.get(6).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(5).equals(enemySymbol) && section.get(2).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(0).equals(mySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(7).equals(mySymbol) && section.get(6).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(5).equals(mySymbol) && section.get(2).equals(enemySymbol)) score+=enemyInRowMultiplier;
+            if(section.get(4).equals(mySymbol) && section.get(0).equals(enemySymbol)) score+=enemyInRowMultiplier;
+        }
+        if(myField == 0) {
+            if(section.get(1).equals(enemySymbol) && section.get(2).equals(enemySymbol)) score+=blockEnemyMultiplier; //h
+            if(section.get(3).equals(enemySymbol) && section.get(6).equals(enemySymbol)) score+=blockEnemyMultiplier; //v
+            if(section.get(4).equals(enemySymbol) && section.get(8).equals(enemySymbol)) score+=blockEnemyMultiplier; //d
+        }
+        if(myField == 1) {
+            if(section.get(0).equals(enemySymbol) && section.get(2).equals(enemySymbol)) score+=blockEnemyMultiplier; //h
+            if(section.get(4).equals(enemySymbol) && section.get(7).equals(enemySymbol)) score+=blockEnemyMultiplier; //v
+        }
+        if(myField == 2) {
+            if(section.get(0).equals(enemySymbol) && section.get(1).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(5).equals(enemySymbol) && section.get(8).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(6).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(myField == 3) {
+            if(section.get(0).equals(enemySymbol) && section.get(6).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(5).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(myField == 4) {
+            if(section.get(3).equals(enemySymbol) && section.get(5).equals(enemySymbol)) score+=blockEnemyMultiplier; //h
+            if(section.get(1).equals(enemySymbol) && section.get(7).equals(enemySymbol)) score+=blockEnemyMultiplier; // v
+            if(section.get(0).equals(enemySymbol) && section.get(8).equals(enemySymbol)) score+=blockEnemyMultiplier; //d1
+            if(section.get(2).equals(enemySymbol) && section.get(6).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(myField == 5) {
+            if(section.get(2).equals(enemySymbol) && section.get(8).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(3).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(myField == 6) {
+            if(section.get(4).equals(enemySymbol) && section.get(2).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(3).equals(enemySymbol) && section.get(0).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(7).equals(enemySymbol) && section.get(8).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(myField == 7) {
+            if(section.get(6).equals(enemySymbol) && section.get(8).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(1).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(myField == 8) {
+            if(section.get(7).equals(enemySymbol) && section.get(6).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(5).equals(enemySymbol) && section.get(2).equals(enemySymbol)) score+=blockEnemyMultiplier;
+            if(section.get(4).equals(enemySymbol) && section.get(0).equals(enemySymbol)) score+=blockEnemyMultiplier;
+        }
+        if(overview != null) {
+            if(myField == 0) {
+                if(overview.get(1).equals(enemySymbol) && overview.get(2).equals(enemySymbol)) score+=enemyOverviewMultiplier; //h
+                if(overview.get(3).equals(enemySymbol) && overview.get(6).equals(enemySymbol)) score+=enemyOverviewMultiplier; //v
+                if(overview.get(4).equals(enemySymbol) && overview.get(8).equals(enemySymbol)) score+=enemyOverviewMultiplier; //d
+            }
+            if(myField == 1) {
+                if(overview.get(0).equals(enemySymbol) && overview.get(2).equals(enemySymbol)) score+=enemyOverviewMultiplier; //h
+                if(overview.get(4).equals(enemySymbol) && overview.get(7).equals(enemySymbol)) score+=enemyOverviewMultiplier; //v
+            }
+            if(myField == 2) {
+                if(overview.get(0).equals(enemySymbol) && overview.get(1).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(5).equals(enemySymbol) && overview.get(8).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(4).equals(enemySymbol) && overview.get(6).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+            if(myField == 3) {
+                if(overview.get(0).equals(enemySymbol) && overview.get(6).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(4).equals(enemySymbol) && overview.get(5).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+            if(myField == 4) {
+                if(overview.get(3).equals(enemySymbol) && overview.get(5).equals(enemySymbol)) score+=enemyOverviewMultiplier; //h
+                if(overview.get(1).equals(enemySymbol) && overview.get(7).equals(enemySymbol)) score+=enemyOverviewMultiplier; // v
+                if(overview.get(0).equals(enemySymbol) && overview.get(8).equals(enemySymbol)) score+=enemyOverviewMultiplier; //d1
+                if(overview.get(2).equals(enemySymbol) && overview.get(6).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+            if(myField == 5) {
+                if(overview.get(2).equals(enemySymbol) && overview.get(8).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(4).equals(enemySymbol) && overview.get(3).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+            if(myField == 6) {
+                if(overview.get(4).equals(enemySymbol) && overview.get(2).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(3).equals(enemySymbol) && overview.get(0).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(7).equals(enemySymbol) && overview.get(8).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+            if(myField == 7) {
+                if(overview.get(6).equals(enemySymbol) && overview.get(8).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(4).equals(enemySymbol) && overview.get(1).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+            if(myField == 8) {
+                if(overview.get(7).equals(enemySymbol) && overview.get(6).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(5).equals(enemySymbol) && overview.get(2).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+                if(overview.get(4).equals(enemySymbol) && overview.get(0).equals(enemySymbol)) score+=enemyOverviewMultiplier;
+            }
+        }
+        return score;
+    }
+
+    private static Integer findBestOrWorstSection(String mySymbol, List<String> overview, boolean best) {
         if (!overview.contains(mySymbol)) {
             return null;
         }
@@ -328,16 +524,15 @@ public class NextBot {
                     if (coordinate.getX() < 0 || coordinate.getX() > 8) {
                         return;
                     }
-                    Coordinate bestInSection = findBestShotInSection(coordinate.getX(), mySymbol, board,  freeCoords, overview, false );
                     if (occs.containsKey(coordinate.getX())) {
-                        occs.replace(coordinate.getX(), occs.get(coordinate.getX()) + 1);
+                        occs.replace(coordinate.getX(), getScoreForField(mySymbol, coordinate.getX(), overview, null, false));
                     } else {
-                        occs.put(coordinate.getX(),bestInSection != null ? 3 : 1);
+                        occs.put(coordinate.getX(), getScoreForField(mySymbol, coordinate.getX(), overview, null, false));
                     }
                 });
             }
             AtomicInteger index = new AtomicInteger(-1);
-            AtomicInteger occ = new AtomicInteger(best ? -1 : 9);
+            AtomicInteger occ = new AtomicInteger(0);
             occs.forEach((key, occu) -> {
                 if (best && occu > occ.get()) {
                     occ.set(occu);
@@ -351,10 +546,6 @@ public class NextBot {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private static Integer findWorstSectionForEnemy(String mySymbol, List<String> overview, List<List<String>> board, List<List<Coordinate>> freeCoords) {
-        return findBestOrWorstSection(mySymbol.equalsIgnoreCase("x") ? "O" : "X", overview, false, board, freeCoords);
     }
 
     private static int[] getRandomCoord() {
