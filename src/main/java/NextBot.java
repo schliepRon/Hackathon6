@@ -80,6 +80,7 @@ public class NextBot {
         Map<String, List<Coordinate>> andereTreffer = new HashMap<>();
 
         Map<String, Integer> lastPlayedBoard = new LinkedHashMap<>();
+        Map<String, Integer> runden = new LinkedHashMap<>();
         Map<String, Integer[]> offeneBoards = new LinkedHashMap<>();
         Map<String, List<List<Coordinate>>> leftCoordsToShootSection = new HashMap<>();
         Map<String, List<Coordinate>> leftCoordsToShootAll = new HashMap<>();
@@ -110,7 +111,8 @@ public class NextBot {
                 }
                 String[][] board = new String[9][9];
                 Integer[] offene = new Integer[9];
-                System.out.println("INIT! " + object.getId());
+                System.out.println("=================================================");
+                System.out.println(object.getId() + " [INIT]");
                 List<List<Coordinate>> sectionCoords = new ArrayList<>();
                 List<Coordinate> allCoords = new ArrayList<>();
                 for (int x = 0; x < 9; x++) {
@@ -127,14 +129,15 @@ public class NextBot {
                 offeneBoards.put(object.getId(), offene);
                 boardMap.put(object.getId(), board);
                 lastPlayedBoard.put(object.getId(), -1);
+                runden.put(object.getId(), 1);
             } else if (type.getType().equalsIgnoreCase(ROUND)) {
 
                 //bei ROUND muessen wir ja antworten, also holen wir uns das "Ack"
                 //in anderen worten: callback, rueckkanal, "der wo die antwort hin muss", ...
                 Ack ack = (Ack) data[data.length - 1];
                 Round object = gson.fromJson(json, Round.class);
-                System.out.println("RUNDE! " + object.getId());
-
+                System.out.println(object.getId() + " [RUNDE] (" + runden.get(object.getId()) + ")");
+                runden.replace(object.getId(), runden.get(object.getId()) + 1);
 
                 for (int x = 0; x < 9; x++) {
                     for (int y = 0; y < 9; y++) {
@@ -164,7 +167,7 @@ public class NextBot {
                 JSONArray jsonArray = new JSONArray();
                 jsonArray.put(nextShot.getX());
                 jsonArray.put(nextShot.getY());
-                System.out.println("\tWir schicken: " + jsonArray);
+                System.out.println(object.getId() +  " [ZUG] " + jsonArray);
 
                 lastPlayedBoard.replace(object.getId(), nextShot.getX());
 
@@ -173,11 +176,13 @@ public class NextBot {
 
 
             } else if (type.getType().equalsIgnoreCase(RESULT)) {
-                System.out.println("Runde vorbei!");
                 ResultPlayer myself = null;
                 boolean bug = false;
+                String gameID = null;
                 try {
                     Result object = gson.fromJson(json, Result.class);
+                    System.out.println(object.getId() + " [RESULT] ");
+                    gameID = object.getId();
                     myself =
                             object.getPlayers().stream()
                                     .filter(resultPlayer -> resultPlayer.getId().equals(object.getSelf()))
@@ -203,13 +208,18 @@ public class NextBot {
 
 
                 if (myself == null || myself.getScore() > 0) {
-                    System.out.println("WIN");
+                    System.out.println(gameID + " [WIN]");
                     winLoss.replace("WIN", winLoss.get("WIN") + 1);
                 } else {
+                    System.out.println(gameID + " [LOSS]");
                     winLoss.replace("LOSS", winLoss.get("LOSS") + 1);
                 }
+
+                System.out.println("=================================================");
                 System.out.println(String.format("WIN/LOSS (%s/%s) %s", winLoss.get("WIN"), winLoss.get("LOSS"), ((double) winLoss.get("WIN") / (winLoss.get("WIN") + winLoss.get("LOSS"))) * 100 + "%"));
-                System.out.println(json);
+//                System.out.println(json);
+
+                System.out.println("=================================================");
                 if (bug) {
                     System.out.println("BUG!!!!!!!!!!!!!!!!!!!!!!!!!");
                 }
@@ -230,7 +240,7 @@ public class NextBot {
                                           Map<String, List<List<Coordinate>>> leftCoordsToShootSection,
                                           Map<String, List<Coordinate>> leftCoordsToShootAll) {
 
-        System.out.println(forcedSelection);
+//        System.out.println(forcedSelection);
 
 
         Integer rand = null;
@@ -251,7 +261,7 @@ public class NextBot {
 
 
         List<Coordinate> verfuegbareCoordinaten = new ArrayList<>(leftCoordsToShootSection.get(gameID).get(index1));
-        System.out.println("verf. Coords: " + verfuegbareCoordinaten.size());
+//        System.out.println("verf. Coords: " + verfuegbareCoordinaten.size());
         Coordinate bestCoord = findBestShotInSection(index1, mySymbol, board, verfuegbareCoordinaten, overview, forcedSelection != null);
         Collections.shuffle(verfuegbareCoordinaten);
         return bestCoord != null ? bestCoord : verfuegbareCoordinaten.stream().findFirst().orElse(new Coordinate(0, 0));
@@ -315,7 +325,7 @@ public class NextBot {
         int canFinishMultiplier = 5;
         int hasFieldInRow = 3;
         int enemyInRowMultiplier = !forced ? -1 : 0;
-        int diagonalMultiplier = !forced ? 1 : nurOverview ? 1 : -2;
+        int diagonalMultiplier =  nurOverview ? 3 : -2;
         int blockEnemyMultiplier = nurOverview ? 0 : 1;
         int enemyOverviewMultiplier = -1;
         if (shouldDiagonal(myField)) {
@@ -383,7 +393,7 @@ public class NextBot {
             if (section.get(4).equals(mySymbol) && section.get(5).equals(enemySymbol)) score += enemyInRowMultiplier;
         }
         if (myField == 4) {
-            score += diagonalMultiplier;
+            score += nurOverview ? 1 : 0;
             if (section.get(3).equals(mySymbol) && section.get(5).equals(mySymbol)) score += canFinishMultiplier; //h
             if (section.get(1).equals(mySymbol) && section.get(7).equals(mySymbol)) score += canFinishMultiplier; // v
             if (section.get(0).equals(mySymbol) && section.get(8).equals(mySymbol)) score += canFinishMultiplier; //d1
