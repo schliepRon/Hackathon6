@@ -13,15 +13,17 @@ import io.socket.client.Socket;
 import io.socket.engineio.client.transports.WebSocket;
 import org.json.JSONArray;
 
+import java.awt.*;
 import java.net.URI;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class NextBot {
-    public static final String SECRET = "f0f5a6c0-994e-4206-9ce4-e6f0e7b8598b"; //Das Secret des Bot
+    public static final String SECRET = "bc0b4bf9-2a90-4f51-9a98-9a0661e655c5"; //Das Secret des Bot
     public static final String GAMESERVER = "https://games.uhno.de"; //URL zum Gameserver
 
     //Verschiedene Arten von Rueckgaben
@@ -210,6 +212,13 @@ public class NextBot {
                 if (myself == null || myself.getScore() > 0) {
                     System.out.println(gameID + " [WIN]");
                     winLoss.replace("WIN", winLoss.get("WIN") + 1);
+                    try {
+                        Desktop desktop = java.awt.Desktop.getDesktop();
+                        URI oURL = new URI("https://www.youtube.com/watch?v=9fdVc_V5BBI");
+                        desktop.browse(oURL);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 } else {
                     System.out.println(gameID + " [LOSS]");
                     winLoss.replace("LOSS", winLoss.get("LOSS") + 1);
@@ -322,11 +331,11 @@ public class NextBot {
         int score = 0;
         boolean nurOverview = overview == null;
 
-        int canFinishMultiplier = 5;
+        int canFinishMultiplier = 6;
         int hasFieldInRow = 3;
         int enemyInRowMultiplier = !forced ? -1 : 0;
         int diagonalMultiplier =  nurOverview ? 3 : -2;
-        int blockEnemyMultiplier = nurOverview ? 0 : 1;
+        int blockEnemyMultiplier = nurOverview ? 0 : 3;
         int enemyOverviewMultiplier = -1;
         if (shouldDiagonal(myField)) {
             score += diagonalMultiplier;
