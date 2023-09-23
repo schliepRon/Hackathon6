@@ -309,19 +309,19 @@ public class BotV3 {
     private static int getScoreForField(String mySymbol, int self, List<String> section, List<String> overview, boolean forced) {
         String enemySymbol = mySymbol.equals("X") ? "O" : "X";
         int myField = self;
-        int score = 1;
+        int score = 0;
         boolean nurOverview = overview == null;
 
-        int canFinishMultiplier = 5;
-        int enemyInRowMultiplier = !forced ? -2 : 0;
-        int diagonalMultiplier = !forced ? 2 : nurOverview ? 1 : -3;
-        int blockEnemyMultiplier = nurOverview ? 0 : 2;
-        int enemyOverviewMultiplier = -2;
+        int canFinishMultiplier = 2;
+        int enemyInRowMultiplier = !forced ? -1 : 0;
+        int diagonalMultiplier = !forced ? 1 : nurOverview ? 1 : -1;
+        int blockEnemyMultiplier = nurOverview ? 0 : 1;
+        int enemyOverviewMultiplier = -1;
         if(shouldDiagonal(myField)) {
             score+=diagonalMultiplier;
         }
         if(overview != null && !overview.get(self).equals("")) {
-            score-=2;
+            score-=1;
         }
         if(myField == 0) {
             if(section.get(1).equals(mySymbol) && section.get(2).equals(mySymbol)) score+=canFinishMultiplier; //h
